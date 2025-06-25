@@ -14,15 +14,7 @@ export class GoogleService {
     this.sheets = google.sheets({ version: 'v4', auth });
   }
 
-  async expense({
-    monto,
-    categoria,
-    fecha,
-  }: {
-    monto: number;
-    categoria: string;
-    fecha: Date;
-  }) {
+  async expense({ monto, categoria, fecha }: { monto: number; categoria: string; fecha: Date }) {
     const month = fecha.toLocaleString('default', { month: 'long' });
     const sheetName = month.charAt(0).toUpperCase() + month.slice(1);
 

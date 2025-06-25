@@ -10,7 +10,7 @@ import {
   mapperExpensesCategory,
   parseMessage,
   savedRecordMessage,
-} from 'src/utils/messages.util';
+} from '../utils/messages.util';
 
 @Injectable()
 export class BotService {
@@ -47,7 +47,6 @@ export class BotService {
 
     const data = parseMessage(message);
     if (!data) {
-      //TODO: send message to user
       await this.sendMessage(invalidFormatMessage());
       return 'Invalid message format';
     }
