@@ -1,30 +1,101 @@
-import { google } from 'googleapis';
 import { Injectable } from '@nestjs/common';
-import * as path from 'path';
+import { ConfigService } from '@nestjs/config';
+import { google } from 'googleapis';
+import { currentMonth, today } from 'src/utils/messages.util';
 
 @Injectable()
 export class GoogleService {
-  private sheets;
+  private readonly sheets;
+  private readonly spreadsheetId;
 
-  constructor() {
+  constructor(configService: ConfigService) {
+    const base64Credentials = configService.get('GOOGLE_CREDENTIALS');
+    this.spreadsheetId = configService.get('SHEET_ID');
+
+    const credentials = JSON.parse(Buffer.from(base64Credentials, 'base64').toString('utf8'));
+
     const auth = new google.auth.GoogleAuth({
-      keyFile: path.join(__dirname, '../../credentials.json'),
+      credentials,
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
+
     this.sheets = google.sheets({ version: 'v4', auth });
   }
 
-  async expense({ monto, categoria, fecha }: { monto: number; categoria: string; fecha: Date }) {
-    const month = fecha.toLocaleString('default', { month: 'long' });
-    const sheetName = month.charAt(0).toUpperCase() + month.slice(1);
+  async registerMovement(data: { type: 'INGRESO' | 'EGRESO'; category: string; detail: string; amount: number }) {
+    const month = currentMonth();
+    const currentDay = today();
 
-    await this.sheets.spreadsheets.values.append({
-      spreadsheetId: 'TU_SPREADSHEET_ID',
-      range: `${sheetName}!A1`,
-      valueInputOption: 'USER_ENTERED',
+    const response = await this.sheets.spreadsheets.values.get({
+      spreadsheetId: this.spreadsheetId,
+      range: `${month}!B14:B`,
+    });
+
+    const existingRows = response.data.values?.length || 0;
+    const targetRow = 14 + existingRows;
+
+    const sheetId = await this.getSheetIdByName(month);
+
+    await this.sheets.spreadsheets.batchUpdate({
+      spreadsheetId: this.spreadsheetId,
       requestBody: {
-        values: [[fecha.toISOString(), categoria, monto]],
+        requests: [
+          {
+            copyPaste: {
+              source: {
+                sheetId,
+                startRowIndex: 13,
+                endRowIndex: 14,
+                startColumnIndex: 1,
+                endColumnIndex: 8,
+              },
+              destination: {
+                sheetId,
+                startRowIndex: targetRow - 1,
+                endRowIndex: targetRow,
+                startColumnIndex: 1,
+                endColumnIndex: 8,
+              },
+              pasteType: 'PASTE_NORMAL',
+            },
+          },
+        ],
       },
     });
+
+    const values = [
+      [
+        data.type === 'INGRESO' ? 'INGRESO' : 'EGRESO',
+        data.type === 'INGRESO' ? data.category : '',
+        data.type === 'EGRESO' ? data.category : '',
+        currentDay,
+        data.detail,
+        data.amount,
+      ],
+    ];
+
+    await this.sheets.spreadsheets.values.update({
+      spreadsheetId: this.spreadsheetId,
+      range: `${month}!B${targetRow}:H${targetRow}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values,
+      },
+    });
+
+    return { ok: true, row: targetRow };
+  }
+
+  private async getSheetIdByName(sheetName: string): Promise<number> {
+    const sheetMeta = await this.sheets.spreadsheets.get({
+      spreadsheetId: this.spreadsheetId,
+    });
+
+    const sheet = sheetMeta.data.sheets.find((s) => s.properties.title === sheetName);
+    if (!sheet) {
+      throw new Error(`Hoja "${sheetName}" no encontrada`);
+    }
+
+    return sheet.properties.sheetId;
   }
 }

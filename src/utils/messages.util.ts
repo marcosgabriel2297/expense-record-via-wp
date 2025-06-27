@@ -101,18 +101,18 @@ export const categories = (type: 'expenses' | 'deposit') => {
 };
 
 export const savedRecordMessage = (type: 'expenses' | 'deposit', amount: number, category: string, detail: string) => {
-  const today = format(new Date(), 'dd/MM/yyyy', { locale: es });
+  const currentDay = today();
   if (type === 'deposit') {
     return `✅ ¡Ingreso registrado con éxito! 🤩
-        📅 Fecha: ${today}
-        💰 Monto: $${amount}
+        📅 Fecha: ${currentDay}
+        💰 Monto: $${currentDay}
         🏷️ Categoría: ${category}
         📝 Detalle: "${detail}"`;
   }
 
   return `✅ ¡Gasto registrado correctamente! 🤑
 
-        📅 Fecha: ${today}
+        📅 Fecha: ${currentDay}
         💸 Monto: $${amount}
         🏷️ Categoría: ${category}
         📝 Detalle: "${detail}"`;
@@ -120,3 +120,9 @@ export const savedRecordMessage = (type: 'expenses' | 'deposit', amount: number,
 
 export const invalidFormatMessage = () =>
   '🚫 El formato del mensaje no es válido.\n\n📌 Ejemplos correctos:\n- gaste 500 en uber, ir a cenar\n- recibi 1000. Sueldo alephee\n\n😉 Si querés ver las categorías disponibles, podés enviar:\n- categorias de ingreso\n- categorias de egreso';
+
+export const today = () => format(new Date(), 'dd/MM/yyyy', { locale: es });
+export const currentMonth = () => {
+  const current = format(new Date(), 'MMMM', { locale: es });
+  return current.charAt(0).toUpperCase() + current.slice(1);
+};

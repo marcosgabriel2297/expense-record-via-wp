@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import { Twilio } from 'twilio';
+import { GoogleService } from '../google/google.service';
 
 import {
   categories,
@@ -19,7 +20,10 @@ export class BotService {
   private readonly twilioClient: Twilio;
   private logger: Logger = new Logger(BotService.name);
 
-  constructor(configService: ConfigService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly googleService: GoogleService,
+  ) {
     this.myphone = configService.get('MY_PHONE');
 
     const sid = configService.get('MESSAGING_ACCOUNT_ID');
@@ -56,7 +60,12 @@ export class BotService {
     if (type === 'deposit') {
       const mappedCategory = mapperDepositCategory(category);
 
-      //TODO: save in Google sheets
+      await this.googleService.registerMovement({
+        type: 'INGRESO',
+        category: mappedCategory,
+        detail,
+        amount,
+      });
 
       await this.sendMessage(savedRecordMessage('deposit', amount, mappedCategory, detail));
       return;
@@ -64,7 +73,12 @@ export class BotService {
 
     const mappedCategory = mapperExpensesCategory(category);
 
-    //TODO: save in Google sheets
+    await this.googleService.registerMovement({
+      type: 'EGRESO',
+      category: mappedCategory,
+      detail,
+      amount,
+    });
     await this.sendMessage(savedRecordMessage('expenses', amount, mappedCategory, detail));
   }
 
