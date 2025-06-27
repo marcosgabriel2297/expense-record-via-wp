@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { google } from 'googleapis';
-import { currentMonth, today } from 'src/utils/messages.util';
+import { /* currentMonth, */ today } from 'src/utils/messages.util';
 
 @Injectable()
 export class GoogleService {
@@ -23,7 +23,7 @@ export class GoogleService {
   }
 
   async registerMovement(data: { type: 'INGRESO' | 'EGRESO'; category: string; detail: string; amount: number }) {
-    const month = currentMonth();
+    const month = 'Julio'; /* currentMonth() */
     const currentDay = today();
 
     const response = await this.sheets.spreadsheets.values.get({
