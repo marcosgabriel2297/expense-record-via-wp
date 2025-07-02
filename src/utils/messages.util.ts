@@ -44,13 +44,15 @@ const depositCategories = {
   'venta de usd': 'VENTA DE USD',
 };
 
+const parseAmount = (raw: string) => parseInt(raw.replace(/\./g, ''), 10);
+
 export const parseMessage = (message: string): ParsedMessage | null => {
-  const expensesRegex = /^gaste\s+(\d+)\s+en\s+([^\.,]+)[\.,]?\s*(.*)$/i;
-  const depositRegex = /^recibi\s+(\d+)[\.,]?\s*(.*)$/i;
+  const expensesRegex = /^gaste\s+([\d.]+)\s+en\s+([^\.,]+)[\.,]?\s*(.*)$/i;
+  const depositRegex = /^ingreso\s+([\d.]+)\s+por\s+(.+)$/i;
 
   const expensesMatch = message.match(expensesRegex);
   if (expensesMatch) {
-    const amount = parseInt(expensesMatch[1]);
+    const amount = parseAmount(expensesMatch[1]);
     const category = expensesMatch[2].trim();
     const detail = expensesMatch[3]?.trim() || category;
 
@@ -64,7 +66,7 @@ export const parseMessage = (message: string): ParsedMessage | null => {
 
   const depositMatch = message.match(depositRegex);
   if (depositMatch) {
-    const amount = parseInt(depositMatch[1]);
+    const amount = parseAmount(depositMatch[1]); // ✅ usa parseAmount acá
     const detail = depositMatch[2]?.trim();
     const category = detail;
 
@@ -100,22 +102,38 @@ export const categories = (type: 'expenses' | 'deposit') => {
   return `📂 Categorías disponibles para *${messageType}s*:\n\n${categoriesList}`;
 };
 
-export const savedRecordMessage = (type: 'expenses' | 'deposit', amount: number, category: string, detail: string) => {
+export const savedRecordMessage = (
+  type: 'expenses' | 'deposit',
+  amount: number,
+  category: string,
+  detail: string,
+  totals: { deposits: string; expenses: string; total: string },
+) => {
   const currentDay = today();
+
   if (type === 'deposit') {
     return `✅ ¡Ingreso registrado con éxito! 🤩
-        📅 Fecha: ${currentDay}
-        💰 Monto: $${currentDay}
-        🏷️ Categoría: ${category}
-        📝 Detalle: "${detail}"`;
+      📅 Fecha: ${currentDay}
+      💰 Monto: $${amount}
+      🏷️ Categoría: ${category}
+      📝 Detalle: "${detail}"
+
+      📊 Totales:
+      🔹 Ingresos: ${totals.deposits}
+      🔻 Egresos: ${totals.expenses}
+      🧾 Total disponible: ${totals.total}`;
   }
 
   return `✅ ¡Gasto registrado correctamente! 🤑
+    📅 Fecha: ${currentDay}
+    💸 Monto: $${amount}
+    🏷️ Categoría: ${category}
+    📝 Detalle: "${detail}"
 
-        📅 Fecha: ${currentDay}
-        💸 Monto: $${amount}
-        🏷️ Categoría: ${category}
-        📝 Detalle: "${detail}"`;
+    📊 Totales:
+    🔹 Ingresos: ${totals.deposits}
+    🔻 Egresos: ${totals.expenses}
+    🧾 Total disponible: ${totals.total}`;
 };
 
 export const invalidFormatMessage = () =>

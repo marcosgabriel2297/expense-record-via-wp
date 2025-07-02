@@ -67,7 +67,9 @@ export class BotService {
         amount,
       });
 
-      await this.sendMessage(savedRecordMessage('deposit', amount, mappedCategory, detail));
+      const totals: { deposits: string; expenses: string; total: string } = await this.googleService.getTotals();
+
+      await this.sendMessage(savedRecordMessage('deposit', amount, mappedCategory, detail, totals));
       return;
     }
 
@@ -79,7 +81,8 @@ export class BotService {
       detail,
       amount,
     });
-    await this.sendMessage(savedRecordMessage('expenses', amount, mappedCategory, detail));
+    const totals: { deposits: string; expenses: string; total: string } = await this.googleService.getTotals();
+    await this.sendMessage(savedRecordMessage('expenses', amount, mappedCategory, detail, totals));
   }
 
   async sendMessage(message: string) {

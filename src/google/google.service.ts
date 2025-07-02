@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { google } from 'googleapis';
-import { /* currentMonth, */ today } from 'src/utils/messages.util';
+import { currentMonth, today } from 'src/utils/messages.util';
 
 @Injectable()
 export class GoogleService {
@@ -23,7 +23,7 @@ export class GoogleService {
   }
 
   async registerMovement(data: { type: 'INGRESO' | 'EGRESO'; category: string; detail: string; amount: number }) {
-    const month = 'Julio'; /* currentMonth() */
+    const month = currentMonth();
     const currentDay = today();
 
     const response = await this.sheets.spreadsheets.values.get({
@@ -84,6 +84,24 @@ export class GoogleService {
     });
 
     return { ok: true, row: targetRow };
+  }
+
+  async getTotals() {
+    const month = currentMonth();
+    const range = `${month}!G8:G10`;
+
+    const response = await this.sheets.spreadsheets.values.get({
+      spreadsheetId: this.spreadsheetId,
+      range,
+    });
+
+    const [deposits = [], expenses = [], total = []] = response.data.values || [];
+
+    return {
+      deposits: deposits[0],
+      expenses: expenses[0],
+      total: total[0],
+    };
   }
 
   private async getSheetIdByName(sheetName: string): Promise<number> {
